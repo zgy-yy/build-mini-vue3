@@ -7,18 +7,11 @@ describe("effect", () => {
             ok: true,
             text: 'hello'
         })
-
-        let res = "";
-
-        function foo() {
-            data.ok ? data.text : '90'
-            console.log('1')
-        }
-
-        effect(foo)
-        data.ok = false
-        data.ok = false
-        data.ok = false
-        data.text = "hh"
+        const obj = reactive({
+            foo: 1
+        })
+        effect(() => {
+            obj.foo = obj.foo + 1
+        })
     })
 })

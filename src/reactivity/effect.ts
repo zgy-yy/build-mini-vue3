@@ -24,7 +24,8 @@ function cleanup(effectFn: ReactiveEffect) {
     effectFn.deps.length = 0 //重置 effectFn.deps 数组
 }
 
-const bucket = new WeakMap()
+const bucket = new WeakMap<Object, Map<Object, Set<ReactiveEffect>>>()
+
 /*
 * 收集依赖
 * */
@@ -37,13 +38,13 @@ export function track(target: Object, key: string | Symbol) {
         depsMap = new Map<Object, Set<ReactiveEffect>>()
         bucket.set(target, depsMap)
     }
-    let deps: Set<ReactiveEffect> = depsMap.get(key)
-    if (!deps) {
-        deps = new Set()
-        depsMap.set(key, deps)
+    let effects: Set<ReactiveEffect> = depsMap.get(key)
+    if (!effects) {
+        effects = new Set()
+        depsMap.set(key, effects)
     }
-    deps.add(activeEffect)
-    activeEffect.deps.push(deps) //保存当前的副作用函数被 收集的集合（set）
+    effects.add(activeEffect)
+    activeEffect.deps.push(effects) //保存当前的副作用函数被 收集的集合（set）
 
 }
 
@@ -51,9 +52,15 @@ export function trigger(target: Object, key: string | Symbol) {
     let depsMap = bucket.get(target)
     if (!depsMap)
         return
-    const deps = depsMap.get(key)
+    const effects = depsMap.get(key)
     // console.log(dep)
-    const effectsToRun = new Set<ReactiveEffect>(deps)//防止无限循环
+    const effectsToRun = new Set<ReactiveEffect>()//防止cleanup引起的无限循环
+    // 如果trigger触发执行的副作用函数与正在执行的相同，则不触发，避免 obj.foo=obj.foo+1 这样引起的无限循环
+    effects && effects.forEach(effectFn => {
+        if (effectFn !== activeEffect) {
+            effectsToRun.add(effectFn)
+        }
+    })
     effectsToRun.forEach(effect => effect.run())
 }
 
