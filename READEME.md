@@ -10,6 +10,7 @@ effect(() => {
  所以就会无限调用，解决办法构造另一个Set集合去便利
  ## 4.5嵌套的effect
 activateEffect 存储当前的副作用函数，嵌套的effect会覆盖它，所以构造一个effectStack栈
+## 4.6 无限循环
 ```ts
 effect(() => {
     obj.foo = obj.foo + 1

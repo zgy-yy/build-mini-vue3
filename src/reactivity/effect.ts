@@ -1,20 +1,42 @@
 let activeEffect: ReactiveEffect = null //当前正在收集的副作用函数
+
+const effectStack: ReactiveEffect[] = [] //用于处理嵌套的effect
+
+type Options = {
+    lazy?: boolean, scheduler?: (fn: Function) => void
+}
+
 class ReactiveEffect {
     //
     private _fn: Function; //副作用函数
     deps: Set<ReactiveEffect>[] = [] //该副作用函数都被哪些依赖集合所收集
 
-    constructor(fn: Function) {
+
+    constructor(fn: Function, public options?: Options) {
         this._fn = fn
     }
 
     run() {
         cleanup(this)//在执行 副作用函数时清除收集本副作用函数的依赖集合，先断开副作用函数与响应式数据之间的依赖，因为在执行本副作用函数后又会被重新收集，防止不必要的更新
         activeEffect = this
+        effectStack.push(this)
         // 执行 fn时，会触发 proxy的get 进行依赖收集
-        return this._fn()
+        let res = this._fn()
+        effectStack.pop()
+        activeEffect = effectStack[effectStack.length - 1]
+        return res
     }
 }
+
+export function effect(fn: Function, options?: Options) {
+    const _effect = new ReactiveEffect(fn, options)
+
+    if (!options || !options.lazy) {
+        _effect.run();//执行真正的副作用函数触发依赖收集
+    }
+    return _effect.run.bind(_effect) //返回副作用函数
+}
+
 
 function cleanup(effectFn: ReactiveEffect) {
     for (let i = 0; i < effectFn.deps.length; i++) {
@@ -53,7 +75,6 @@ export function trigger(target: Object, key: string | Symbol) {
     if (!depsMap)
         return
     const effects = depsMap.get(key)
-    // console.log(dep)
     const effectsToRun = new Set<ReactiveEffect>()//防止cleanup引起的无限循环
     // 如果trigger触发执行的副作用函数与正在执行的相同，则不触发，避免 obj.foo=obj.foo+1 这样引起的无限循环
     effects && effects.forEach(effectFn => {
@@ -61,12 +82,12 @@ export function trigger(target: Object, key: string | Symbol) {
             effectsToRun.add(effectFn)
         }
     })
-    effectsToRun.forEach(effect => effect.run())
-}
-
-export function effect(fn: Function) {
-    const _effect = new ReactiveEffect(fn)
-    _effect.run();//执行真正的副作用函数触发依赖收集
-    return _effect.run.bind(_effect)
+    effectsToRun.forEach(effect => {
+        if (effect?.options?.scheduler) {
+            effect.options.scheduler(effect.run.bind(effect))
+        } else {
+            effect.run()
+        }
+    })
 }
 
