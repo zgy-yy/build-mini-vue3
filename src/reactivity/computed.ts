@@ -12,7 +12,6 @@ export function computed(getter: Function) {
                 dirty = true
                 trigger(obj, 'value')
             }
-
             // fn()
         }
     })

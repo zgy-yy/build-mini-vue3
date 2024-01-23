@@ -5,12 +5,10 @@ const effectStack: ReactiveEffect[] = [] //用于处理嵌套的effect
 type Options = {
     lazy?: boolean, scheduler?: (fn: Function) => void
 }
-
 class ReactiveEffect {
     //
     private _fn: Function; //副作用函数
     deps: Set<ReactiveEffect>[] = [] //该副作用函数都被哪些依赖集合所收集
-
 
     constructor(fn: Function, public options?: Options) {
         this._fn = fn
