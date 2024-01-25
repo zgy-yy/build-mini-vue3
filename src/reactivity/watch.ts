@@ -12,27 +12,38 @@ function traverse(value: any, seen = new Set()) { //递归读取source
     return value;
 }
 
-export default function watch(source: Object | Function, cb: (newValue?: any, oldValue?: any) => void) {
+export default function watch(source: Object | Function, cb: (newValue?: any, oldValue?: any) => void,
+                              options?: {
+                                  immediate: boolean
+                              }) {
 
     let getter: Function
     if (typeof source === 'function') {
         getter = source
     } else {
-        getter = traverse(source)
+        getter = () =>
+            traverse(source)
     }
 
 
     let oldValue: any, newValue: any;
 
+    function job() {
+        newValue = effectFn()
+        cb(newValue, oldValue)
+        oldValue = newValue
+    }
+
     const effectFn = effect(() => getter(), {
         lazy: true,
-        scheduler() {
-            newValue = effectFn()
-            cb(newValue, oldValue)
-            oldValue = newValue
-        }
+        scheduler: job
     })
-    oldValue = effectFn()
+    if (options?.immediate) {
+        job()
+    } else {
+        oldValue = effectFn()
+    }
+
 }
 
 

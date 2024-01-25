@@ -21,7 +21,7 @@ describe('watch', () => {
         const data = {foo: 1, bar: 2}
         const obj = reactive(data)
 
-        watch(()=>obj.foo, () => {
+        watch(() => obj.foo, () => {
             console.log(1)
         })
         obj.foo++
@@ -31,10 +31,22 @@ describe('watch', () => {
         const data = {foo: 1, bar: 2}
         const obj = reactive(data)
 
-        watch(()=>obj.foo, (newValue, oldValue) => {
-            console.log(newValue,oldValue)
+        watch(() => obj.foo, (newValue, oldValue) => {
+            console.log(newValue, oldValue)
         })
         obj.foo++
+
+    })
+    it('immediate test', () => {
+        const data = {foo: 1, bar: 2}
+        const obj = reactive(data)
+
+        watch(() => obj.foo, (newValue, oldValue) => {
+            console.log(newValue, oldValue)
+        }, {
+            immediate: true
+        })
+        // obj.foo++
 
     })
 })
