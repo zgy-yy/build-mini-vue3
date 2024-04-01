@@ -51,11 +51,17 @@ function processElement(vnode: VNode, container: HTMLElement) {
 
 function mountElement(vnode: VNode, container: HTMLElement) {
   const el = (vnode.el = document.createElement(<string>vnode.type));
-
-  if (vnode.props) {
+  const { props } = vnode;
+  if (props) {
     //处理属性
-    for (const key in vnode.props) {
-      el.setAttribute(key, vnode.props[key]);
+    for (const key in props) {
+      const isOn = (key: string) => /^on[A-Z]/.test(key);
+      if (isOn(key)) {
+        const eventName = key.slice(2).toLowerCase();
+        el.addEventListener(eventName, props[key]);
+      } else {
+        el.setAttribute(key, props[key]);
+      }
     }
   }
 
